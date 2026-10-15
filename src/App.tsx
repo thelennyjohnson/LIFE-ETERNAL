@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowLeft, ArrowRight, Award, BookOpen, Castle, Check, ChevronDown, ChevronRight, CircleHelp,
   Cpu, Crown, Crosshair, Diamond, Disc3, Dices, Download, Flame, Gamepad2, Gem, Globe2, HardDrive, Hammer, Heart,
@@ -55,46 +55,76 @@ function App() {
   const [selectedKingdom, setSelectedKingdom] = useState(0);
   const [lootItem, setLootItem] = useState(0);
   const [deathState, setDeathState] = useState<'idle' | 'fallen' | 'victory'>('idle');
-  const [sound, setSound] = useState(false);
+  const [sound, setSound] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
-  const audioRef = useRef<AudioContext | null>(null);
-  const ambientRef = useRef<{ left: OscillatorNode; right: OscillatorNode; gain: GainNode } | null>(null);
+  const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const navigationLockRef = useRef(false);
+  const pageNavigationClickRef = useRef(false);
 
   const playSfx = () => {
     if (!sound) return;
-    const context = audioRef.current ?? new AudioContext();
-    audioRef.current = context;
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(620, context.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(920, context.currentTime + 0.08);
-    gain.gain.setValueAtTime(0.035, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.12);
-    oscillator.connect(gain).connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.13);
+    const sfx = new Audio('/sword-menu-sfx.mp3');
+    sfx.volume = 0.5;
+    void sfx.play().catch(() => undefined);
   };
-  const toggleSound = () => { const next = !sound; setSound(next); if (next) playSfx(); };
+  const startBackgroundMusic = () => {
+    if (sound) void backgroundMusicRef.current?.play().catch(() => undefined);
+  };
+  const toggleSound = () => {
+    const next = !sound;
+    if (next) void backgroundMusicRef.current?.play().catch(() => undefined);
+    else backgroundMusicRef.current?.pause();
+    setSound(next);
+  };
   useEffect(() => {
-    if (!sound) { ambientRef.current?.left.stop(); ambientRef.current?.right.stop(); ambientRef.current?.gain.disconnect(); ambientRef.current = null; return; }
-    const context = audioRef.current ?? new AudioContext();
-    audioRef.current = context;
-    const gain = context.createGain();
-    const left = context.createOscillator();
-    const right = context.createOscillator();
-    gain.gain.value = 0.018;
-    left.type = 'sine'; right.type = 'triangle';
-    left.frequency.value = 73.42; right.frequency.value = 110;
-    left.connect(gain).connect(context.destination); right.connect(gain);
-    left.start(); right.start();
-    ambientRef.current = { left, right, gain };
-    return () => { left.stop(); right.stop(); gain.disconnect(); ambientRef.current = null; };
+    const music = new Audio('/epic-intro-guitar.mp3');
+    music.loop = true;
+    music.volume = 0.28;
+    backgroundMusicRef.current = music;
+    return () => { music.pause(); backgroundMusicRef.current = null; };
+  }, []);
+  useEffect(() => {
+    const music = backgroundMusicRef.current;
+    if (!music) return;
+    if (!sound) { music.pause(); return; }
+    void music.play().catch(() => undefined);
+  }, [sound]);
+  useEffect(() => {
+    if (!sound) return;
+    const startMusic = () => startBackgroundMusic();
+    window.addEventListener('pointerdown', startMusic, { capture: true, once: true });
+    window.addEventListener('keydown', startMusic, { capture: true, once: true });
+    window.addEventListener('touchstart', startMusic, { capture: true, once: true });
+    return () => {
+      window.removeEventListener('pointerdown', startMusic, true);
+      window.removeEventListener('keydown', startMusic, true);
+      window.removeEventListener('touchstart', startMusic, true);
+    };
+  }, [sound]);
+  useEffect(() => {
+    if (!sound) return;
+    const playButtonSfx = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const button = event.target.closest('button');
+      if (pageNavigationClickRef.current) { pageNavigationClickRef.current = false; return; }
+      if (!button || button.closest('[aria-label="Game navigation"]') || button.getAttribute('aria-label') === 'Open menu') return;
+      const sfx = new Audio('/button-sfx.mp3');
+      sfx.volume = 0.42;
+      void sfx.play().catch(() => undefined);
+    };
+    window.addEventListener('click', playButtonSfx);
+    return () => window.removeEventListener('click', playButtonSfx);
   }, [sound]);
 
-  const goTo = (section: Section) => { playSfx(); setActive(section); setMenuOpen(false); };
+  const goTo = (section: Section) => {
+    pageNavigationClickRef.current = true;
+    window.setTimeout(() => { pageNavigationClickRef.current = false; }, 0);
+    startBackgroundMusic();
+    playSfx();
+    setActive(section);
+    setMenuOpen(false);
+  };
   useEffect(() => {
     const menuItems: Section[] = [...tabs.map(tab => tab.id), 'donate', 'demo'];
     const onKey = (event: KeyboardEvent) => {
@@ -155,7 +185,7 @@ function App() {
 
   return <main className="h-screen overflow-hidden bg-[#080d17] text-[#f0e5ce]">
     <div key={active} className="page-flip h-full">
-      {active === 'home' ? <Home onNavigate={goTo} parallax={parallax} sound={sound} setSound={setSound} toggleSound={toggleSound} menuOpen={menuOpen} setMenuOpen={setMenuOpen} /> : <GameSection active={active} onNavigate={goTo} selectedKingdom={selectedKingdom} setSelectedKingdom={setSelectedKingdom} lootItem={lootItem} setLootItem={setLootItem} deathState={deathState} setDeathState={setDeathState} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} playSfx={playSfx} />}
+      {active === 'home' ? <Home onNavigate={goTo} parallax={parallax} sound={sound} setSound={setSound} toggleSound={toggleSound} menuOpen={menuOpen} setMenuOpen={setMenuOpen} /> : <GameSection active={active} onNavigate={goTo} selectedKingdom={selectedKingdom} setSelectedKingdom={setSelectedKingdom} lootItem={lootItem} setLootItem={setLootItem} deathState={deathState} setDeathState={setDeathState} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} />}
     </div>
     <Footer onNavigate={goTo} />
   </main>;
@@ -173,27 +203,27 @@ function SideNav({ active, onNavigate, menuOpen, setMenuOpen, sound, toggleSound
 }
 
 function Home({ onNavigate, parallax, sound, setSound, toggleSound, menuOpen, setMenuOpen }: { onNavigate: (section: Section) => void; parallax: { x: number; y: number }; sound: boolean; setSound: (value: boolean) => void; toggleSound: () => void; menuOpen: boolean; setMenuOpen: (value: boolean) => void }) {
-  return <section className="game-frame relative overflow-hidden border-b border-[#bb8d4b]/30"><div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_35%,#8d765d_0%,#314654_27%,#111d2d_60%,#080d17_100%)]" /><div className="absolute inset-0 opacity-40" style={{ backgroundImage: `url(${assets.heroBackground})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'grayscale(.35) sepia(.25)' }} /><div className="absolute inset-0 bg-[linear-gradient(90deg,#07101c_4%,transparent_63%),linear-gradient(0deg,#080d17_1%,transparent_42%)]" /><div className="absolute right-[-12%] top-[12%] h-[72%] w-[62%] opacity-85" style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)` }}><div className="absolute bottom-0 right-[24%] h-[82%] w-[21%] rounded-t-[45%] bg-[linear-gradient(90deg,#090d16,#273446_45%,#0b111b)] shadow-[-30px_0_80px_#000]" /><div className="absolute bottom-[4%] right-[8%] h-[12%] w-[58%] rotate-[-8deg] bg-[#111622] shadow-[0_14px_25px_#000]" /><div className="absolute right-[17%] top-[29%] h-[47%] w-[6%] rotate-[-26deg] bg-[linear-gradient(90deg,#76736b,#ded0a9,#3c3e41)] shadow-[0_0_16px_#cfa864]" /></div>
+  return <section className="game-frame relative overflow-hidden border-b border-[#bb8d4b]/30"><div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_35%,#8d765d_0%,#314654_27%,#111d2d_60%,#080d17_100%)]" /><div className="absolute inset-0 opacity-40" style={{ backgroundImage: `url(${assets.heroBackground})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'grayscale(.35) sepia(.25)' }} /><div className="absolute inset-0 bg-[linear-gradient(90deg,#07101c_4%,transparent_63%),linear-gradient(0deg,#080d17_1%,transparent_42%)]" />
     {embers.map((ember, index) => <i key={index} className="ember" style={{ left: ember.left, bottom: '-10px', animationDelay: ember.delay, animationDuration: ember.duration, ['--drift' as string]: ember.drift }} />)}
     <SideNav active="home" onNavigate={onNavigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} />
-    <div className="relative z-30 mx-auto flex h-full max-w-[1440px] flex-col justify-center px-7 sm:px-14 lg:px-20"><div className="max-w-xl"><div className="cinzel mb-4 flex items-center gap-3 text-[10px] tracking-[.38em] text-[#cf9c4d]"><span className="h-px w-12 bg-[#cf9c4d]" />A FOREVER-FREE ACTION RPG</div><h1 className="display-title text-[24px] sm:text-[36px] lg:text-[48px]">LIFE<br /><span className="relative">ETERNAL<i className="absolute left-[49%] top-[-8%] h-[121%] w-px rotate-[8deg] bg-gradient-to-b from-transparent via-[#ffbc67] to-transparent shadow-[0_0_9px_#ff6f1e]" /></span></h1><div className="mt-6 max-w-md border-l-2 border-[#a67b40] pl-5"><h2 className="cinzel text-lg leading-snug tracking-[.18em] text-[#e0b86e] sm:text-xl">THE LAST KNIGHT.<br />AN ENDLESS WAR.</h2><p className="mt-3 text-base leading-relaxed text-[#dfd3ba]">The Demon King Malakar is building a gateway to conquer the multiverse. You are C'eleste, the last surviving knight of an ancient order. Die, grow stronger, and try again.</p></div><div className="mt-6 flex flex-wrap gap-3"><Button onClick={() => onNavigate('demo')} variant="red" icon={<Play size={14} fill="currentColor" />}>PLAY FREE DEMO</Button><Button onClick={() => onNavigate('donate')} variant="gold" icon={<Heart size={14} />}>DONATE</Button></div><div className="cinzel mt-4 flex items-center gap-4 text-[9px] tracking-[.2em] text-[#a99d87]"><span className="flex items-center gap-2"><Gamepad2 size={14} /> PC</span><span className="h-3 w-px bg-[#806844]" /><span>ANDROID</span><span className="h-3 w-px bg-[#806844]" /><span>iOS</span></div></div></div><div className="scroll-hint absolute bottom-20 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 text-[10px] tracking-[.18em] text-[#9f967f] lg:flex"><ChevronDown size={14} /> SCROLL TO EXPLORE</div></section>;
+    <div className="relative z-30 mx-auto flex h-full max-w-[1440px] flex-col justify-center px-7 sm:px-14 lg:px-20"><div className="max-w-xl"><div className="cinzel mb-4 flex items-center gap-3 text-[10px] tracking-[.38em] text-[#cf9c4d]"><span className="h-px w-12 bg-[#cf9c4d]" />A FOREVER-FREE ACTION RPG</div><img src="/life-eternal-logo.png" alt="Life Eternal" className="h-auto w-44 mix-blend-screen drop-shadow-[0_0_18px_rgba(218,160,70,.38)] sm:w-56 lg:w-72" /><div className="mt-6 max-w-md border-l-2 border-[#a67b40] pl-5"><h2 className="cinzel text-lg leading-snug tracking-[.18em] text-[#e0b86e] sm:text-xl">THE LAST KNIGHT.<br />AN ENDLESS WAR.</h2><p className="mt-3 text-base leading-relaxed text-[#dfd3ba]">The Demon King Malakar is building a gateway to conquer the multiverse. You are C'eleste, the last surviving knight of an ancient order. Die, grow stronger, and try again.</p></div><div className="mt-6 flex flex-wrap gap-3"><Button onClick={() => onNavigate('demo')} variant="red" icon={<Play size={14} fill="currentColor" />}>PLAY FREE DEMO</Button><Button onClick={() => onNavigate('donate')} variant="gold" icon={<Heart size={14} />}>DONATE</Button></div><div className="cinzel mt-4 flex items-center gap-4 text-[9px] tracking-[.2em] text-[#a99d87]"><span className="flex items-center gap-2"><Gamepad2 size={14} /> PC</span><span className="h-3 w-px bg-[#806844]" /><span>ANDROID</span><span className="h-3 w-px bg-[#806844]" /><span>iOS</span></div></div></div><div className="scroll-hint absolute bottom-20 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 text-[10px] tracking-[.18em] text-[#9f967f] lg:flex"><ChevronDown size={14} /> SCROLL TO EXPLORE</div></section>;
 }
 
 function HeroPanel() { return <Panel className="absolute bottom-10 right-8 z-30 hidden w-72 p-6 lg:block"><div className="cinzel mb-4 text-[10px] tracking-[.25em] text-[#d1a85e]">THE ETERNAL OATH</div>{[['Infinite Campaign', Globe2], ['Death Isn’t The End', RotateCcw], ['No Pay-to-Win', Shield]].map(([label, icon]) => <div key={label as string} className="flex items-center gap-4 border-t border-white/10 py-3 text-[#d2c8b4]"><Icon icon={icon as React.ElementType} size={20} /><span className="text-lg">{label as string}</span></div>)}</Panel>; }
 
-function GameSection({ active, onNavigate, selectedKingdom, setSelectedKingdom, lootItem, setLootItem, deathState, setDeathState, menuOpen, setMenuOpen, sound, toggleSound, playSfx }: { active: Exclude<Section, 'home'>; onNavigate: (section: Section) => void; selectedKingdom: number; setSelectedKingdom: (value: number) => void; lootItem: number; setLootItem: (value: number) => void; deathState: 'idle' | 'fallen' | 'victory'; setDeathState: (value: 'fallen' | 'victory' | 'idle') => void; menuOpen: boolean; setMenuOpen: (value: boolean) => void; sound: boolean; toggleSound: () => void; playSfx: () => void }) {
-  return <section className="game-frame bg-[radial-gradient(ellipse_at_top,#1c3040,#0c1423_55%,#080d17)]"><SideNav active={active} onNavigate={onNavigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} /><div className="relative z-30 mx-auto flex h-full min-h-0 max-w-[1600px] flex-col px-5 pt-10 pb-20 sm:px-10 sm:pt-12 sm:pb-20 lg:pr-48"><button onClick={() => onNavigate('home')} className="cinzel mb-3 flex shrink-0 items-center gap-2 text-[10px] tracking-[.22em] text-[#c6a05e] hover:text-white sm:mb-4"><ArrowLeft size={14} /> RETURN TO TITLE</button><div className="min-h-0 flex-1 overflow-hidden">{active === 'story' && <Story />}{active === 'world' && <World selected={selectedKingdom} setSelected={setSelectedKingdom} />}{active === 'loot' && <Loot selected={lootItem} setSelected={setLootItem} />}{active === 'eternal' && <Eternal state={deathState} setState={setDeathState} />}{active === 'compete' && <Compete />}{active === 'donate' && <Donate playSfx={playSfx} />}{active === 'demo' && <Demo />}</div></div></section>;
+function GameSection({ active, onNavigate, selectedKingdom, setSelectedKingdom, lootItem, setLootItem, deathState, setDeathState, menuOpen, setMenuOpen, sound, toggleSound }: { active: Exclude<Section, 'home'>; onNavigate: (section: Section) => void; selectedKingdom: number; setSelectedKingdom: (value: number) => void; lootItem: number; setLootItem: (value: number) => void; deathState: 'idle' | 'fallen' | 'victory'; setDeathState: (value: 'fallen' | 'victory' | 'idle') => void; menuOpen: boolean; setMenuOpen: (value: boolean) => void; sound: boolean; toggleSound: () => void }) {
+  return <section className="game-frame bg-[radial-gradient(ellipse_at_top,#1c3040,#0c1423_55%,#080d17)]"><SideNav active={active} onNavigate={onNavigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} /><div className="relative z-30 mx-auto flex h-full min-h-0 max-w-[1600px] flex-col px-5 pt-10 pb-20 sm:px-10 sm:pt-12 sm:pb-20 lg:pr-48"><button onClick={() => onNavigate('home')} className="cinzel mb-3 flex shrink-0 items-center gap-2 text-[10px] tracking-[.22em] text-[#c6a05e] hover:text-white sm:mb-4"><ArrowLeft size={14} /> RETURN TO TITLE</button><div className="min-h-0 flex-1 overflow-hidden">{active === 'story' && <Story />}{active === 'world' && <World selected={selectedKingdom} setSelected={setSelectedKingdom} />}{active === 'loot' && <Loot selected={lootItem} setSelected={setLootItem} />}{active === 'eternal' && <Eternal state={deathState} setState={setDeathState} />}{active === 'compete' && <Compete />}{active === 'donate' && <Donate />}{active === 'demo' && <Demo />}</div></div></section>;
 }
 
 function CharacterArt({ character, large = false }: { character: typeof donationCharacters[number]; large?: boolean }) { return <div className={`character-art relative min-h-0 overflow-hidden ${large ? 'h-full' : 'h-28'} w-full`} style={{ backgroundImage: `url(${character.image}), radial-gradient(circle at 50% 30%, ${character.accent}66, transparent 30%), linear-gradient(135deg, #172438, #080c15 72%)` }}><div className="character-aura absolute left-1/2 top-[18%] h-20 w-20 -translate-x-1/2 rounded-full" style={{ backgroundColor: `${character.accent}33` }} /><div className="character-silhouette absolute bottom-0 left-1/2 h-[78%] w-[30%] -translate-x-1/2 rounded-t-[45%]" style={{ background: `linear-gradient(90deg, #070a11, ${character.accent}99 45%, #090c13 72%)`, boxShadow: `0 0 40px ${character.accent}33` }} /><div className="character-blade absolute bottom-[13%] left-[62%] h-[65%] w-1 rotate-[24deg]" style={{ backgroundColor: character.accent, boxShadow: `0 0 12px ${character.accent}` }} /><div className="absolute inset-0 bg-gradient-to-t from-[#060a12] via-transparent to-transparent" /></div>; }
 
-function Donate({ playSfx }: { playSfx: () => void }) {
+function Donate() {
   const [selected, setSelected] = useState(0);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [payment, setPayment] = useState<'card' | 'crypto'>('card');
   const character = donationCharacters[selected];
-  const choose = (index: number) => { setSelected(index); playSfx(); };
+  const choose = (index: number) => { setSelected(index); };
   return <div className="donation-screen flex h-full min-h-0 flex-col">
     <SectionHeading eyebrow="THE OFFERING / SUPPORT THE ETERNAL WAR" title="CHOOSE YOUR LEGEND" text="Select a contribution and your champion. Every contribution helps keep Life Eternal forever-free." />
     <div className="mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[.75fr_1.25fr] lg:items-stretch">
