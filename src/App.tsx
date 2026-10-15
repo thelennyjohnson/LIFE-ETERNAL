@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowLeft, ArrowRight, Award, BookOpen, Castle, Check, ChevronDown, ChevronRight, CircleHelp,
-  Cpu, Crown, Crosshair, Diamond, Disc3, Dices, Download, Flame, Gamepad2, Gem, Globe2, HardDrive, Hammer, Heart,
-  LockKeyhole, Map, Menu, Monitor, Mountain, Music2, Package, Play, RotateCcw, ScrollText, Shield,
+  Copy, Cpu, Crown, Crosshair, Diamond, Disc3, Dices, Download, ExternalLink, Flame, Gamepad2, Gem, Globe2, HardDrive, Hammer, Heart,
+  LockKeyhole, Map, Menu, Monitor, Mountain, Music2, Package, Play, QrCode, RotateCcw, ScrollText, Share2, Shield,
   ShieldCheck, Swords, Trophy, Users, Volume2, VolumeX, X, Youtube, Zap
 } from 'lucide-react';
 import { assets } from './assets';
@@ -191,10 +191,107 @@ function App() {
   </main>;
 }
 
+// Recipient wallet address for crypto donations
+const CRYPTO_RECIPIENT_ADDRESS = '0x3a1e9e54f4d708e3acbdb2cfaa3ec94f34b9b02e';
+// Web3 EIP-681 paylink protocol & MetaMask universal deep link
+const CRYPTO_PAY_LINK_EIP681 = `ethereum:${CRYPTO_RECIPIENT_ADDRESS}`;
+const CRYPTO_METAMASK_LINK = `https://metamask.app.link/send/${CRYPTO_RECIPIENT_ADDRESS}`;
+
+// Google Sheets integration configuration:
+// 1. Create a Google Apps Script Web App attached to your Google Sheet with a doPost(e) handler
+// 2. Paste the published Web App URL below
+const GOOGLE_SHEETS_WEBHOOK_URL = ''; // e.g. https://script.google.com/macros/s/AKfycb.../exec
+
+interface DonationRecord {
+  email: string;
+  amount: number;
+  champion: string;
+  chain: string;
+  recipientAddress: string;
+  donorTxOrWallet?: string;
+  timestamp: string;
+}
+
+async function sendDonationToGoogleSheets(record: DonationRecord) {
+  // Always safely cache record in localStorage as guarantee
+  try {
+    const cached = JSON.parse(localStorage.getItem('life_eternal_donations') || '[]');
+    cached.push(record);
+    localStorage.setItem('life_eternal_donations', JSON.stringify(cached));
+  } catch (err) {
+    console.warn('Could not cache donation locally:', err);
+  }
+
+  if (!GOOGLE_SHEETS_WEBHOOK_URL) {
+    console.info('[Google Sheets] Webhook URL not set yet. Supporter recorded locally:', record);
+    return { success: true, localOnly: true };
+  }
+
+  try {
+    await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors', // standard for Google Apps Script Web Apps
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('[Google Sheets] Failed to send supporter record:', error);
+    return { success: false, error };
+  }
+}
+
+function XIcon({ size = 15, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+function DiscordIcon({ size = 15, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon({ size = 15, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.24-.74-.66-1.24-1.48-1.39-1.73-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.47c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.45 1.03 2.62.13.17 1.78 2.71 4.3 3.8.6.26 1.07.42 1.44.54.61.19 1.16.17 1.6.1.49-.07 1.47-.6 1.68-1.19.21-.58.21-1.08.14-1.19-.06-.1-.22-.17-.47-.29" />
+    </svg>
+  );
+}
+
+function RedditIcon({ size = 15, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87s-7.004-2.176-7.004-4.87c0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 13.99c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+    </svg>
+  );
+}
+
+function InstagramIcon({ size = 15, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+    </svg>
+  );
+}
+
 function Header({ onNavigate, sound, setSound }: { onNavigate: (section: Section) => void; sound: boolean; setSound: (value: boolean) => void }) {
   return <header className="absolute inset-x-0 top-0 z-40 flex items-start justify-between px-5 py-5 sm:px-10 lg:px-14">
     <button onClick={() => onNavigate('home')} className="cinzel text-left text-xs tracking-[.3em] text-[#d8b674] transition hover:text-white">LIFE<br /><span className="text-[#f0e8d8]">ETERNAL</span><span className="ml-2 text-[8px] tracking-[.1em] text-[#a48046]">/ 01</span></button>
-    <div className="hidden items-start gap-2 sm:flex"><Button variant="red" onClick={() => onNavigate('story')} icon={<Play size={13} fill="currentColor" />}>PLAY FREE DEMO</Button><div className="text-center"><Button variant="gold" onClick={() => alert('Thank you for supporting Life Eternal.')} icon={<Heart size={13} fill="currentColor" />}>DONATE</Button><div className="mt-1 text-[10px] tracking-[.08em] text-[#d7b978]">Support us for special in-game loot</div></div><button onClick={() => setSound(!sound)} aria-label="Toggle sounds" className="ml-1 mt-2 text-[#d9b66e] hover:text-white">{sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button></div>
+    <div className="hidden items-start gap-2 sm:flex">
+      <Button variant="red" onClick={() => onNavigate('demo')} icon={<ScrollText size={13} />}>JOIN THE WAITLIST</Button>
+      <div className="text-center">
+        <Button variant="gold" onClick={() => onNavigate('donate')} icon={<Heart size={13} fill="currentColor" />}>DONATE</Button>
+        <div className="mt-1 text-[10px] tracking-[.08em] text-[#d7b978]">Support us for special in-game loot</div>
+      </div>
+      <button onClick={() => setSound(!sound)} aria-label="Toggle sounds" className="ml-1 mt-2 text-[#d9b66e] hover:text-white">{sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
+    </div>
   </header>;
 }
 
@@ -205,8 +302,9 @@ function SideNav({ active, onNavigate, menuOpen, setMenuOpen, sound, toggleSound
 function Home({ onNavigate, parallax, sound, setSound, toggleSound, menuOpen, setMenuOpen }: { onNavigate: (section: Section) => void; parallax: { x: number; y: number }; sound: boolean; setSound: (value: boolean) => void; toggleSound: () => void; menuOpen: boolean; setMenuOpen: (value: boolean) => void }) {
   return <section className="game-frame relative overflow-hidden border-b border-[#bb8d4b]/30"><div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_35%,#8d765d_0%,#314654_27%,#111d2d_60%,#080d17_100%)]" /><div className="absolute inset-0 opacity-40" style={{ backgroundImage: `url(${assets.heroBackground})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'grayscale(.35) sepia(.25)' }} /><div className="absolute inset-0 bg-[linear-gradient(90deg,#07101c_4%,transparent_63%),linear-gradient(0deg,#080d17_1%,transparent_42%)]" />
     {embers.map((ember, index) => <i key={index} className="ember" style={{ left: ember.left, bottom: '-10px', animationDelay: ember.delay, animationDuration: ember.duration, ['--drift' as string]: ember.drift }} />)}
+    <Header onNavigate={onNavigate} sound={sound} setSound={setSound} />
     <SideNav active="home" onNavigate={onNavigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} />
-    <div className="relative z-30 mx-auto flex h-full max-w-[1440px] flex-col justify-center px-7 sm:px-14 lg:px-20"><div className="max-w-xl"><div className="cinzel mb-4 flex items-center gap-3 text-[10px] tracking-[.38em] text-[#cf9c4d]"><span className="h-px w-12 bg-[#cf9c4d]" />A FOREVER-FREE ACTION RPG</div><img src="/life-eternal-logo.png" alt="Life Eternal" className="h-auto w-44 mix-blend-screen drop-shadow-[0_0_18px_rgba(218,160,70,.38)] sm:w-56 lg:w-72" /><div className="mt-6 max-w-md border-l-2 border-[#a67b40] pl-5"><h2 className="cinzel text-lg leading-snug tracking-[.18em] text-[#e0b86e] sm:text-xl">THE LAST KNIGHT.<br />AN ENDLESS WAR.</h2><p className="mt-3 text-base leading-relaxed text-[#dfd3ba]">The Demon King Malakar is building a gateway to conquer the multiverse. You are C'eleste, the last surviving knight of an ancient order. Die, grow stronger, and try again.</p></div><div className="mt-6 flex flex-wrap gap-3"><Button onClick={() => onNavigate('demo')} variant="red" icon={<Play size={14} fill="currentColor" />}>PLAY FREE DEMO</Button><Button onClick={() => onNavigate('donate')} variant="gold" icon={<Heart size={14} />}>DONATE</Button></div><div className="cinzel mt-4 flex items-center gap-4 text-[9px] tracking-[.2em] text-[#a99d87]"><span className="flex items-center gap-2"><Gamepad2 size={14} /> PC</span><span className="h-3 w-px bg-[#806844]" /><span>ANDROID</span><span className="h-3 w-px bg-[#806844]" /><span>iOS</span></div></div></div><div className="scroll-hint absolute bottom-20 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 text-[10px] tracking-[.18em] text-[#9f967f] lg:flex"><ChevronDown size={14} /> SCROLL TO EXPLORE</div></section>;
+    <div className="relative z-30 mx-auto flex h-full max-w-[1440px] flex-col justify-center px-7 sm:px-14 lg:px-20"><div className="max-w-xl"><div className="cinzel mb-4 flex items-center gap-3 text-[10px] tracking-[.38em] text-[#cf9c4d]"><span className="h-px w-12 bg-[#cf9c4d]" />A FOREVER-FREE ACTION RPG</div><img src="/life-eternal-logo.png" alt="Life Eternal" className="h-auto w-44 mix-blend-screen drop-shadow-[0_0_18px_rgba(218,160,70,.38)] sm:w-56 lg:w-72" /><div className="mt-6 max-w-md border-l-2 border-[#a67b40] pl-5"><h2 className="cinzel text-lg leading-snug tracking-[.18em] text-[#e0b86e] sm:text-xl">THE LAST KNIGHT.<br />AN ENDLESS WAR.</h2><p className="mt-3 text-base leading-relaxed text-[#dfd3ba]">The Demon King Malakar is building a gateway to conquer the multiverse. You are C'eleste, the last surviving knight of an ancient order. Die, grow stronger, and try again.</p></div><div className="mt-6 flex flex-wrap gap-3"><Button onClick={() => onNavigate('demo')} variant="red" icon={<ScrollText size={14} />}>JOIN THE WAITLIST</Button><Button onClick={() => onNavigate('donate')} variant="gold" icon={<Heart size={14} />}>DONATE</Button></div><div className="cinzel mt-4 flex items-center gap-4 text-[9px] tracking-[.2em] text-[#a99d87]"><span className="flex items-center gap-2"><Gamepad2 size={14} /> PC</span><span className="h-3 w-px bg-[#806844]" /><span>ANDROID</span><span className="h-3 w-px bg-[#806844]" /><span>iOS</span></div></div></div><div className="scroll-hint absolute bottom-20 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 text-[10px] tracking-[.18em] text-[#9f967f] lg:flex"><ChevronDown size={14} /> SCROLL TO EXPLORE</div></section>;
 }
 
 function HeroPanel() { return <Panel className="absolute bottom-10 right-8 z-30 hidden w-72 p-6 lg:block"><div className="cinzel mb-4 text-[10px] tracking-[.25em] text-[#d1a85e]">THE ETERNAL OATH</div>{[['Infinite Campaign', Globe2], ['Death Isn’t The End', RotateCcw], ['No Pay-to-Win', Shield]].map(([label, icon]) => <div key={label as string} className="flex items-center gap-4 border-t border-white/10 py-3 text-[#d2c8b4]"><Icon icon={icon as React.ElementType} size={20} /><span className="text-lg">{label as string}</span></div>)}</Panel>; }
@@ -220,27 +318,490 @@ function CharacterArt({ character, large = false }: { character: typeof donation
 function Donate() {
   const [selected, setSelected] = useState(0);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [step, setStep] = useState<'payment' | 'success'>('payment');
   const [email, setEmail] = useState('');
-  const [payment, setPayment] = useState<'card' | 'crypto'>('card');
+  const [emailError, setEmailError] = useState('');
+  const [selectedChain, setSelectedChain] = useState<'ETH' | 'BASE' | 'POLYGON'>('ETH');
+  const [donorTxOrWallet, setDonorTxOrWallet] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
+  const [captionCopied, setCaptionCopied] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const character = donationCharacters[selected];
   const choose = (index: number) => { setSelected(index); };
-  return <div className="donation-screen flex h-full min-h-0 flex-col">
-    <SectionHeading eyebrow="THE OFFERING / SUPPORT THE ETERNAL WAR" title="CHOOSE YOUR LEGEND" text="Select a contribution and your champion. Every contribution helps keep Life Eternal forever-free." />
-    <div className="mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[.75fr_1.25fr] lg:items-stretch">
-      <Panel className="hidden min-h-0 flex-col overflow-hidden p-3 sm:p-4 lg:flex">
-        <div className="mb-2 flex items-center justify-between"><span className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">SELECT AMOUNT</span><span className="text-xs text-[#a89b85]">{donationCharacters.length} OPTIONS</span></div>
-        <div className="hidden grid-cols-2 gap-2 sm:grid-cols-4 lg:grid">{donationCharacters.map((entry, index) => <button key={entry.price} onClick={() => choose(index)} aria-label={`Donate $${entry.price}`} className={`character-card flex min-h-16 items-center justify-center p-3 ${selected === index ? 'character-card-selected' : ''}`}><span className="cinzel text-xl tracking-[.12em] text-[#f1ce86]">${entry.price.toLocaleString()}</span></button>)}</div>
-        <div className="flex min-h-24 items-center justify-center text-center lg:hidden"><div><div className="cinzel text-[10px] tracking-[.2em] text-[#d5a45c]">SWIPE OR USE THE ARROWS</div><div className="mt-2 text-sm text-[#bdb4a0]">Choose your support level below</div></div></div>
-        <div className="mt-auto hidden items-center gap-4 border-t border-[#d2ad64]/30 pt-4 lg:flex"><Button variant="gold" onClick={() => setCheckoutOpen(true)} icon={<Heart size={14} fill="currentColor" />}>DONATE</Button><div><div className="cinzel text-[10px] tracking-[.18em] text-[#d5a45c]">YOUR CONTRIBUTION</div><div className="cinzel mt-1 text-2xl text-[#f1ce86]">${character.price.toLocaleString()}</div></div></div>
-      </Panel>
-      <Panel className="preview-panel relative min-h-0 flex flex-col overflow-hidden p-3 sm:p-4">
-        <div className="cinzel shrink-0 text-[10px] tracking-[.3em]" style={{ color: character.accent }}>SELECTED CHAMPION / ${character.price.toLocaleString()}</div>
-        <div className="relative min-h-0 flex-1 overflow-hidden"><CharacterArt character={character} large /><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#070c15] via-[#070c15dd] to-transparent px-4 pb-3 pt-16"><h3 className="display-title text-xl sm:text-2xl">{character.name}</h3><p className="mt-1 text-base italic text-[#d2c6ad]">{character.title}</p></div></div>
-        <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t border-[#d2ad64]/30 pt-3 lg:hidden"><button onClick={() => choose((selected - 1 + donationCharacters.length) % donationCharacters.length)} className="border border-[#b78a4a]/60 px-2 py-3 text-xs text-[#e5c47d]">← ${donationCharacters[(selected - 1 + donationCharacters.length) % donationCharacters.length].price.toLocaleString()}</button><button onClick={() => setCheckoutOpen(true)} className="border border-[#e2b967] bg-gradient-to-b from-[#d9ad5b] to-[#8e5e22] px-3 py-3 text-xs font-bold tracking-[.08em] text-[#1d130d]">BUY FOR ${character.price.toLocaleString()}</button><button onClick={() => choose((selected + 1) % donationCharacters.length)} className="border border-[#b78a4a]/60 px-2 py-3 text-xs text-[#e5c47d]">${donationCharacters[(selected + 1) % donationCharacters.length].price.toLocaleString()} →</button></div>
-      </Panel>
+
+  const handleOpenCheckout = () => {
+    setStep('payment');
+    setEmailError('');
+    setShareDropdownOpen(false);
+    setCheckoutOpen(true);
+  };
+
+  const handleCopyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(CRYPTO_RECIPIENT_ADDRESS);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // fallback
+    }
+  };
+
+  const validateEmail = (val: string) => {
+    return Boolean(val && val.includes('@') && val.includes('.'));
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address to record your supporter perks & receipt.');
+      return;
+    }
+    setEmailError('');
+    setIsSubmitting(true);
+
+    await sendDonationToGoogleSheets({
+      email: email.trim(),
+      amount: character.price,
+      champion: character.name,
+      chain: selectedChain,
+      recipientAddress: CRYPTO_RECIPIENT_ADDRESS,
+      donorTxOrWallet: donorTxOrWallet.trim() || undefined,
+      timestamp: new Date().toISOString(),
+    });
+
+    setIsSubmitting(false);
+    setStep('success');
+  };
+
+  const shareText = "Check out Life Eternal video game. #lifeeternalgame";
+  const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://life-eternal.game';
+
+  const handleCopyCaption = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCaptionCopied(true);
+      setTimeout(() => setCaptionCopied(false), 2500);
+    } catch {
+      // fallback
+    }
+  };
+
+  const handleInstagramShare = async () => {
+    await handleCopyCaption();
+    window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div className="donation-screen flex h-full min-h-0 flex-col">
+      <SectionHeading
+        eyebrow="THE OFFERING / SUPPORT THE ETERNAL WAR"
+        title="CHOOSE YOUR LEGEND"
+        text="Select a contribution and your champion. Every contribution helps keep Life Eternal forever-free."
+      />
+      <div className="mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[.75fr_1.25fr] lg:items-stretch">
+        <Panel className="hidden min-h-0 flex-col overflow-hidden p-3 sm:p-4 lg:flex">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">SELECT AMOUNT</span>
+            <span className="text-xs text-[#a89b85]">{donationCharacters.length} OPTIONS</span>
+          </div>
+          <div className="hidden grid-cols-2 gap-2 sm:grid-cols-4 lg:grid">
+            {donationCharacters.map((entry, index) => (
+              <button
+                key={entry.price}
+                onClick={() => choose(index)}
+                aria-label={`Donate $${entry.price}`}
+                className={`character-card flex min-h-16 items-center justify-center p-3 ${
+                  selected === index ? 'character-card-selected' : ''
+                }`}
+              >
+                <span className="cinzel text-xl tracking-[.12em] text-[#f1ce86]">
+                  ${entry.price.toLocaleString()}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="flex min-h-24 items-center justify-center text-center lg:hidden">
+            <div>
+              <div className="cinzel text-[10px] tracking-[.2em] text-[#d5a45c]">SWIPE OR USE THE ARROWS</div>
+              <div className="mt-2 text-sm text-[#bdb4a0]">Choose your support level below</div>
+            </div>
+          </div>
+          <div className="mt-auto hidden items-center gap-4 border-t border-[#d2ad64]/30 pt-4 lg:flex">
+            <Button variant="gold" onClick={handleOpenCheckout} icon={<Heart size={14} fill="currentColor" />}>
+              DONATE
+            </Button>
+            <div>
+              <div className="cinzel text-[10px] tracking-[.18em] text-[#d5a45c]">YOUR CONTRIBUTION</div>
+              <div className="cinzel mt-1 text-2xl text-[#f1ce86]">${character.price.toLocaleString()}</div>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel className="preview-panel relative min-h-0 flex flex-col overflow-hidden p-3 sm:p-4">
+          <div className="cinzel shrink-0 text-[10px] tracking-[.3em]" style={{ color: character.accent }}>
+            SELECTED CHAMPION / ${character.price.toLocaleString()}
+          </div>
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            <CharacterArt character={character} large />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#070c15] via-[#070c15dd] to-transparent px-4 pb-3 pt-16">
+              <h3 className="display-title text-xl sm:text-2xl">{character.name}</h3>
+              <p className="mt-1 text-base italic text-[#d2c6ad]">{character.title}</p>
+            </div>
+          </div>
+          <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-t border-[#d2ad64]/30 pt-3 lg:hidden">
+            <button
+              onClick={() => choose((selected - 1 + donationCharacters.length) % donationCharacters.length)}
+              className="border border-[#b78a4a]/60 px-2 py-3 text-xs text-[#e5c47d]"
+            >
+              ← ${donationCharacters[(selected - 1 + donationCharacters.length) % donationCharacters.length].price.toLocaleString()}
+            </button>
+            <button
+              onClick={handleOpenCheckout}
+              className="border border-[#e2b967] bg-gradient-to-b from-[#d9ad5b] to-[#8e5e22] px-3 py-3 text-xs font-bold tracking-[.08em] text-[#1d130d]"
+            >
+              DONATE ${character.price.toLocaleString()}
+            </button>
+            <button
+              onClick={() => choose((selected + 1) % donationCharacters.length)}
+              className="border border-[#b78a4a]/60 px-2 py-3 text-xs text-[#e5c47d]"
+            >
+              ${donationCharacters[(selected + 1) % donationCharacters.length].price.toLocaleString()} →
+            </button>
+          </div>
+        </Panel>
+      </div>
+
+      {checkoutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#03060d]/85 p-4 backdrop-blur-sm">
+          <Panel className="max-h-[92vh] w-full max-w-xl overflow-y-auto bg-[#0a1220] p-5 sm:p-7 shadow-[0_0_50px_rgba(0,0,0,.9),0_0_30px_rgba(215,160,72,.15)]">
+            <div className="flex items-start justify-between border-b border-[#c49b58]/30 pb-4">
+              <div>
+                <div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">
+                  {step === 'payment' ? 'SACRED OFFERING / CRYPTO CONTRIBUTION' : 'HONOR ACKNOWLEDGED'}
+                </div>
+                <h3 className="mt-1 text-2xl text-[#f0e5ce]">
+                  {step === 'payment' ? `Donate $${character.price.toLocaleString()}` : 'Offering Received'}
+                </h3>
+                <p className="mt-0.5 text-xs text-[#b8ab94]">
+                  {step === 'payment'
+                    ? `Pledge for ${character.name} · ${character.title}`
+                    : 'Your pledge has been inscribed in the eternal chronicles'}
+                </p>
+              </div>
+              <button
+                onClick={() => setCheckoutOpen(false)}
+                aria-label="Close donation window"
+                className="text-[#c9a05a] transition hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {step === 'payment' ? (
+              <div className="mt-5 space-y-5">
+                {/* Amount Banner */}
+                <div className="border border-[#d2ad64]/40 bg-gradient-to-r from-[#21160d] via-[#162132] to-[#0c1626] p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="cinzel text-[9px] tracking-[.2em] text-[#d5a45c]">CONTRIBUTION AMOUNT</div>
+                      <div className="cinzel text-3xl font-bold text-[#f3d289]">${character.price.toLocaleString()} USD</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="cinzel text-[9px] tracking-[.15em] text-[#a89b85]">CHOSEN CHAMPION</div>
+                      <div className="text-sm font-semibold text-[#f0e5ce]">{character.name}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Required Email Field */}
+                <div>
+                  <label className="cinzel block text-[10px] tracking-[.18em] text-[#d5a45c]">
+                    EMAIL ADDRESS <span className="text-[#e26955]">* (REQUIRED)</span>
+                  </label>
+                  <input
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError('');
+                    }}
+                    type="email"
+                    required
+                    placeholder="hero@example.com"
+                    className={`mt-2 w-full border bg-[#060c17] px-3.5 py-3 font-sans text-sm text-[#f0e5ce] outline-none transition ${
+                      emailError ? 'border-[#e26955] focus:border-[#e26955]' : 'border-[#d2ad64]/40 focus:border-[#e2b967]'
+                    }`}
+                  />
+                  {emailError && (
+                    <p className="mt-1.5 text-xs text-[#e26955]">{emailError}</p>
+                  )}
+                  <p className="mt-1 text-[11px] text-[#9a8e7b]">
+                    Required to associate your contribution, unlock in-game supporter rewards, and email you status updates.
+                  </p>
+                </div>
+
+                {/* Accepted Chains */}
+                <div>
+                  <div className="cinzel mb-2 flex items-center justify-between text-[10px] tracking-[.18em] text-[#d5a45c]">
+                    <span>ACCEPTED CHAINS (SELECT NETWORK)</span>
+                    <span className="text-[9px] text-[#9b8d78]">ETH / BASE / POLYGON</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['ETH', 'BASE', 'POLYGON'] as const).map((chain) => (
+                      <button
+                        key={chain}
+                        type="button"
+                        onClick={() => setSelectedChain(chain)}
+                        className={`cinzel border p-3 text-center text-xs font-bold tracking-[.15em] transition ${
+                          selectedChain === chain
+                            ? 'border-[#e2b967] bg-[#d2a85d]/20 text-[#f3d289] shadow-[0_0_15px_rgba(226,185,103,.2)]'
+                            : 'border-white/10 bg-white/[.02] text-[#b8ab94] hover:border-white/30'
+                        }`}
+                      >
+                        {chain === 'ETH' ? 'ETH (Ethereum)' : chain === 'BASE' ? 'BASE Network' : 'POLYGON'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-[#a99c86]">
+                    You can send ETH, USDC, USDT, or native tokens (MATIC/POL on Polygon, ETH on Base & Ethereum).
+                  </p>
+                </div>
+
+                {/* Crypto Paylinks */}
+                <div>
+                  <div className="cinzel mb-2 text-[10px] tracking-[.18em] text-[#d5a45c]">
+                    INSTANT CRYPTO PAYLINK
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <a
+                      href={CRYPTO_PAY_LINK_EIP681}
+                      className="cinzel flex items-center justify-center gap-2 border border-[#c99a51] bg-gradient-to-b from-[#8d2025] to-[#3b080d] p-3 text-[11px] font-bold tracking-[.16em] text-[#f4dfb1] shadow-[0_4px_16px_rgba(98,13,16,.3)] transition hover:brightness-125"
+                    >
+                      <Zap size={14} /> PAY VIA CRYPTO WALLET
+                    </a>
+                    <a
+                      href={CRYPTO_METAMASK_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cinzel flex items-center justify-center gap-2 border border-[#d2ad64]/60 bg-[#142337] p-3 text-[11px] font-bold tracking-[.16em] text-[#e8cf94] transition hover:border-[#e2b967] hover:bg-[#1b2f48]"
+                    >
+                      <ExternalLink size={14} /> METAMASK DEEP LINK
+                    </a>
+                  </div>
+                </div>
+
+                {/* View address & send manually */}
+                <div className="border border-[#c49b58]/35 bg-[#08101d] p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="cinzel text-[10px] tracking-[.18em] text-[#d5a45c]">
+                      VIEW ADDRESS & SEND MANUALLY
+                    </div>
+                    <span className="text-[10px] text-[#8e826f]">EVM Compatible</span>
+                  </div>
+                  <p className="mt-1 text-xs text-[#b8ab94]">
+                    Send your contribution directly from any exchange or private wallet to this address:
+                  </p>
+                  <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <div className="flex-1 select-all break-all border border-white/10 bg-[#040810] px-3 py-2.5 font-mono text-xs text-[#eedfbc]">
+                      {CRYPTO_RECIPIENT_ADDRESS}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyAddress}
+                      className="cinzel flex shrink-0 items-center justify-center gap-2 border border-[#d2ad64]/60 bg-[#16253b] px-4 py-2.5 text-[10px] font-bold tracking-[.14em] text-[#f0dfb8] transition hover:border-[#e2b967] hover:bg-[#203450]"
+                    >
+                      {copied ? (
+                        <>
+                          <Check size={14} className="text-[#e1b25b]" /> COPIED!
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} /> COPY ADDRESS
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Optional Tx hash / Sender Address */}
+                <div>
+                  <label className="cinzel block text-[10px] tracking-[.16em] text-[#b8ab94]">
+                    TRANSACTION HASH OR YOUR WALLET ADDRESS (OPTIONAL)
+                  </label>
+                  <input
+                    value={donorTxOrWallet}
+                    onChange={(e) => setDonorTxOrWallet(e.target.value)}
+                    type="text"
+                    placeholder="0x... or transaction ID to speed up verification"
+                    className="mt-2 w-full border border-white/15 bg-[#060c17] px-3.5 py-2.5 font-sans text-xs text-[#f0e5ce] outline-none focus:border-[#d9ac5f]"
+                  />
+                </div>
+
+                {/* Confirm sent button */}
+                <div className="border-t border-[#c49b58]/30 pt-4">
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleConfirmPayment}
+                    className="cinzel group flex w-full items-center justify-center gap-3 border border-[#e1bd75] bg-gradient-to-b from-[#d9ad5b] to-[#8e5e22] py-3.5 text-xs font-bold tracking-[.22em] text-[#1d130d] shadow-[0_8px_24px_rgba(197,144,54,.25)] transition hover:brightness-125 disabled:opacity-60"
+                  >
+                    <Check size={16} />
+                    {isSubmitting ? 'RECORDING SACRIFICE...' : "I'VE SENT PAYMENT / CONFIRM DONATION"}
+                  </button>
+                  <p className="mt-2 text-center text-[10px] text-[#8e8371]">
+                    Once submitted, our record system notes your contribution and prepares your legendary supporter rank.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              /* Success View */
+              <div className="mt-5 space-y-6 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#e2b967] bg-[#e2b967]/10 shadow-[0_0_35px_rgba(226,185,103,.3)]">
+                  <Heart size={30} className="fill-[#e2b967] text-[#e2b967]" />
+                </div>
+
+                <div>
+                  <div className="cinzel text-[10px] tracking-[.3em] text-[#d5a45c]">
+                    OFFERING CONFIRMED · HERO OF THE FIRST GATE
+                  </div>
+                  <h4 className="mt-3 text-xl font-medium leading-snug text-[#f7e8c8] sm:text-2xl">
+                    "You've brought us one step closer to making this game a reality"
+                  </h4>
+                  <p className="mt-3 text-sm leading-relaxed text-[#cbbfa9]">
+                    Thank you deeply for your support. Your backing directly fuels the development of Life Eternal and keeps the game forever-free for all players worldwide.
+                  </p>
+                </div>
+
+                {/* Supporter details card */}
+                <div className="border border-[#c49b58]/35 bg-[#08111e] p-4 text-left">
+                  <div className="cinzel text-[9px] tracking-[.2em] text-[#d5a45c]">DONATION RECEIPT SUMMARY</div>
+                  <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[#8e8371]">Amount:</span>{' '}
+                      <span className="font-semibold text-[#f1ce86]">${character.price.toLocaleString()} USD</span>
+                    </div>
+                    <div>
+                      <span className="text-[#8e8371]">Champion:</span>{' '}
+                      <span className="text-[#eee0c2]">{character.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-[#8e8371]">Chain:</span>{' '}
+                      <span className="text-[#eee0c2]">{selectedChain}</span>
+                    </div>
+                    <div>
+                      <span className="text-[#8e8371]">Registered Email:</span>{' '}
+                      <span className="text-[#eee0c2]">{email}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-[10px] text-[#8e8371]">
+                    Recipient: <span className="font-mono text-[#cfbf9e]">{CRYPTO_RECIPIENT_ADDRESS}</span>
+                  </div>
+                </div>
+
+                {/* Share With Friends Dropdown */}
+                <div className="relative text-left">
+                  <div className="cinzel mb-2 text-center text-[10px] tracking-[.2em] text-[#d5a45c]">
+                    SPREAD THE WORD / RALLY ALLIES
+                  </div>
+                  <div className="flex flex-col items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShareDropdownOpen(!shareDropdownOpen)}
+                      className="cinzel flex items-center justify-center gap-3 border border-[#d2ad64]/70 bg-[#16273d] px-6 py-3 text-xs font-bold tracking-[.18em] text-[#f4dfb1] shadow-lg transition hover:border-[#e2b967] hover:bg-[#1f3756]"
+                    >
+                      <Share2 size={15} /> SHARE WITH FRIENDS <ChevronDown size={14} className={shareDropdownOpen ? 'rotate-180 transition' : 'transition'} />
+                    </button>
+
+                    {shareDropdownOpen && (
+                      <div className="w-full border border-[#d2ad64]/50 bg-[#091322] p-3 shadow-2xl">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          {/* X.com */}
+                          <a
+                            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 border border-white/15 bg-white/5 p-2.5 text-xs text-[#eee0c2] transition hover:border-[#e2b967] hover:bg-[#152336]"
+                          >
+                            <XIcon size={14} /> X.com
+                          </a>
+
+                          {/* WhatsApp */}
+                          <a
+                            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 border border-white/15 bg-white/5 p-2.5 text-xs text-[#eee0c2] transition hover:border-[#25D366] hover:bg-[#152336]"
+                          >
+                            <WhatsAppIcon size={15} className="text-[#25D366]" /> WhatsApp
+                          </a>
+
+                          {/* Reddit */}
+                          <a
+                            href={`https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareText)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 border border-white/15 bg-white/5 p-2.5 text-xs text-[#eee0c2] transition hover:border-[#FF4500] hover:bg-[#152336]"
+                          >
+                            <RedditIcon size={15} className="text-[#FF4500]" /> Reddit
+                          </a>
+
+                          {/* Instagram */}
+                          <button
+                            type="button"
+                            onClick={handleInstagramShare}
+                            className="flex items-center justify-center gap-2 border border-white/15 bg-white/5 p-2.5 text-xs text-[#eee0c2] transition hover:border-[#E1306C] hover:bg-[#152336]"
+                          >
+                            <InstagramIcon size={15} className="text-[#E1306C]" /> Instagram
+                          </button>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5 text-[11px] text-[#b8ab94]">
+                          <span className="italic truncate pr-2">"{shareText}"</span>
+                          <button
+                            type="button"
+                            onClick={handleCopyCaption}
+                            className="cinzel shrink-0 text-[10px] tracking-[.1em] text-[#d5a45c] hover:underline"
+                          >
+                            {captionCopied ? 'COPIED!' : 'COPY TEXT'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Discord Community Button */}
+                <div className="border-t border-[#c49b58]/30 pt-4">
+                  <div className="cinzel mb-2.5 text-[10px] tracking-[.2em] text-[#d5a45c]">
+                    OR JOIN THE COMMUNITY
+                  </div>
+                  <a
+                    href="https://discord.gg/s4hfgz2yy8"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cinzel inline-flex items-center justify-center gap-3 border border-[#5865F2] bg-[#5865F2]/20 px-6 py-3 text-xs font-bold tracking-[.18em] text-[#e8ebff] shadow-[0_4px_20px_rgba(88,101,242,.25)] transition hover:bg-[#5865F2] hover:text-white"
+                  >
+                    <DiscordIcon size={18} /> JOIN OUR DISCORD COMMUNITY
+                  </a>
+                </div>
+
+                {/* Return button */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutOpen(false)}
+                    className="cinzel text-[11px] tracking-[.2em] text-[#a89b85] transition hover:text-white"
+                  >
+                    RETURN TO GAME
+                  </button>
+                </div>
+              </div>
+            )}
+          </Panel>
+        </div>
+      )}
     </div>
-    {checkoutOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#03060d]/80 p-4 backdrop-blur-sm"><Panel className="w-full max-w-md bg-[#0c1728] p-5 sm:p-6"><div className="flex items-start justify-between"><div><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">SECURE CHECKOUT</div><h3 className="mt-2 text-2xl text-[#eee0c2]">Donate ${character.price.toLocaleString()}</h3></div><button onClick={() => setCheckoutOpen(false)} aria-label="Close checkout" className="text-[#c9a05a] hover:text-white"><X size={20} /></button></div><label className="cinzel mt-5 block text-[10px] tracking-[.18em] text-[#d5a45c]">EMAIL ADDRESS<input value={email} onChange={event => setEmail(event.target.value)} type="email" placeholder="you@example.com" className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><div className="mt-4 grid grid-cols-2 gap-2"><button onClick={() => setPayment('card')} className={`border p-3 text-sm ${payment === 'card' ? 'border-[#e2b967] bg-[#d2a85d]/15 text-[#f1ce86]' : 'border-white/15 text-[#bdb4a0]'}`}>Credit card</button><button onClick={() => setPayment('crypto')} className={`border p-3 text-sm ${payment === 'crypto' ? 'border-[#e2b967] bg-[#d2a85d]/15 text-[#f1ce86]' : 'border-white/15 text-[#bdb4a0]'}`}>Crypto</button></div><Button variant="gold" onClick={() => alert(`Checkout started for ${email || 'your email'} via ${payment === 'card' ? 'credit card' : 'crypto'}.`)} icon={<Check size={14} />}>CONTINUE TO CHECKOUT</Button></Panel></div>}
-  </div>;
+  );
 }
 
 function Demo() { return <div className="demo-screen flex h-full flex-col"><SectionHeading eyebrow="THE FIRST GATE / PC DEMO" title="ENTER THE ETERNAL WAR" text="Download the free PC demo and take your first step through the gateway. Your progress is yours to keep." /><div className="mt-4 grid flex-1 gap-4 lg:grid-cols-[1.1fr_.9fr]"><Panel className="p-4 sm:p-6"><div className="flex items-center justify-between border-b border-[#c49b58]/30 pb-3"><div><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">LIFE ETERNAL / PC DEMO</div><h3 className="mt-1 text-2xl text-[#ebdfc5]">Recommended</h3></div><Monitor className="text-[#d5a45c]" size={24} /></div><div className="mt-4 grid gap-2 sm:grid-cols-2"><Requirement icon={Cpu} label="Processor" value="Intel Core i5-8400 / AMD Ryzen 5 2600" /><Requirement icon={Monitor} label="Graphics" value="GTX 1060 6GB / RX 580 8GB" /><Requirement icon={HardDrive} label="Storage" value="35 GB available space" /><Requirement icon={ShieldCheck} label="Operating system" value="Windows 10 64-bit or newer" /></div><div className="mt-4 border border-[#d2a85d]/30 bg-[#d2a85d]/5 p-3"><p className="text-sm text-[#d0c4ac]">16 GB RAM · RTX 2060 / RX 6600 · Broadband internet connection</p></div></Panel><Panel className="relative flex flex-col justify-between overflow-hidden p-5 sm:p-6"><div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_32%,rgba(213,154,69,.25),transparent_24%),linear-gradient(135deg,#172b39,#090f1b)]" /><div className="absolute right-[16%] top-[12%] h-40 w-24 rounded-[50%] border border-[#d5a45c]/40 shadow-[0_0_45px_rgba(213,164,92,.18)]" /><div className="relative"><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">NO ACCOUNT REQUIRED</div><h3 className="mt-3 text-3xl text-[#eee0c2]">A forever-free beginning.</h3><p className="mt-3 max-w-md text-sm leading-relaxed text-[#c9bea9]">Play the opening chapter solo or bring a friend. No pay-to-win systems. No time limit.</p></div><div className="relative flex flex-1 flex-col justify-center pt-3"><Button variant="red" onClick={() => alert('The Life Eternal PC demo installer will be available here soon.')} icon={<Download size={15} />}>DOWNLOAD PC DEMO</Button><p className="mt-2 text-xs text-[#928a7b]">Windows installer · 4.2 GB · Version 0.1.0</p></div></Panel></div><div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#a7a092]"><span className="flex items-center gap-1"><Check size={13} className="text-[#d4a75d]" /> Demo progress carries forward</span><span className="flex items-center gap-1"><Users size={13} className="text-[#d4a75d]" /> Solo and co-op ready</span><span className="flex items-center gap-1"><ShieldCheck size={13} className="text-[#d4a75d]" /> Safe, direct download</span></div></div>; }
@@ -279,7 +840,7 @@ function PageDots({ active, onNavigate }: { active: Section; onNavigate: (sectio
   return <nav className="pointer-events-none fixed bottom-16 left-1/2 z-40 hidden -translate-x-1/2 items-center gap-2 sm:flex" aria-label="Section indicator"><div className="pointer-events-auto flex items-center gap-2 rounded-full border border-[#b78a4a]/25 bg-[#080d17]/80 px-4 py-2 backdrop-blur-sm">{items.map(item => <button key={item.id} onClick={() => onNavigate(item.id)} aria-label={item.label} className={`h-2 rounded-full transition-all ${active === item.id ? 'w-6 bg-[#e2b967]' : 'w-2 bg-[#6b5d42] hover:bg-[#a8854e]'}`} />)}</div></nav>;
 }
 
-function Footer({ onNavigate }: { onNavigate: (section: Section) => void }) { return <footer className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-center border-t border-[#b78a4a]/25 bg-[#080d17]/75 px-6 py-3 text-center text-[#8f897d] backdrop-blur-sm"><div className="flex items-center gap-6"><button onClick={() => onNavigate('home')} className="cinzel text-xs tracking-[.25em] text-[#d6b16b]">LIFE ETERNAL</button><div className="hidden text-xs text-[#898273] sm:block">Forever-free single-player & co-op action RPG.</div><div className="flex gap-4"><a href="#x" aria-label="X" className="transition hover:text-[#d6b16b]"><X size={17} /></a><a href="#discord" aria-label="Discord" className="transition hover:text-[#d6b16b]"><Users size={17} /></a><a href="#youtube" aria-label="YouTube" className="transition hover:text-[#d6b16b]"><Youtube size={17} /></a></div></div></footer>; }
+function Footer({ onNavigate }: { onNavigate: (section: Section) => void }) { return <footer className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-center border-t border-[#b78a4a]/25 bg-[#080d17]/75 px-6 py-3 text-center text-[#8f897d] backdrop-blur-sm"><div className="flex items-center gap-6"><button onClick={() => onNavigate('home')} className="cinzel text-xs tracking-[.25em] text-[#d6b16b]">LIFE ETERNAL</button><div className="hidden text-xs text-[#898273] sm:block">Forever-free single-player & co-op action RPG.</div><div className="flex gap-4"><a href="https://twitter.com/intent/tweet?text=Check%20out%20Life%20Eternal%20video%20game.%20%23lifeeternalgame" target="_blank" rel="noopener noreferrer" aria-label="X" className="transition hover:text-[#d6b16b]"><XIcon size={16} /></a><a href="https://discord.gg/s4hfgz2yy8" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="transition hover:text-[#d6b16b]"><DiscordIcon size={17} /></a><a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="transition hover:text-[#d6b16b]"><Youtube size={17} /></a></div></div></footer>; }
 
 export default App;
 
