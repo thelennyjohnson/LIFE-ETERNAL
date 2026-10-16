@@ -200,7 +200,32 @@ const CRYPTO_METAMASK_LINK = `https://metamask.app.link/send/${CRYPTO_RECIPIENT_
 // Google Sheets integration configuration:
 // 1. Create a Google Apps Script Web App attached to your Google Sheet with a doPost(e) handler
 // 2. Paste the published Web App URL below
-const GOOGLE_SHEETS_WEBHOOK_URL = ''; // e.g. https://script.google.com/macros/s/AKfycb.../exec
+const GOOGLE_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyvsmuEeVdOWsNeagdZ0CFgMqiLruZaQrgOBot14M52myDKSeCOXQlqJ7NLpcI1UPMh/exec';
+
+type WebsiteFormSubmission = {
+  type: 'waitlist' | 'team';
+  email: string;
+  source: string;
+  skills?: string;
+  gameExperience?: string;
+  portfolio?: string;
+  socials?: string;
+};
+
+async function submitWebsiteFormToSheet(payload: WebsiteFormSubmission): Promise<void> {
+  if (!GOOGLE_SHEETS_WEBHOOK_URL) {
+    throw new Error('The Google Sheets endpoint is not configured.');
+  }
+
+  // Apps Script Web Apps do not expose a normal CORS response to this site.
+  // text/plain avoids a CORS preflight; the response is intentionally opaque.
+  await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: JSON.stringify({ ...payload, website: '' }),
+  });
+}
 
 interface DonationRecord {
   email: string;
@@ -695,8 +720,57 @@ function Waitlist() {
   const [gameExperience, setGameExperience] = useState('');
   const [portfolio, setPortfolio] = useState('');
   const [socials, setSocials] = useState('');
+  const [waitlistError, setWaitlistError] = useState('');
+  const [waitlistSending, setWaitlistSending] = useState(false);
+  const [teamError, setTeamError] = useState('');
+  const [teamSending, setTeamSending] = useState(false);
 
-  return <div className="flex h-full flex-col"><SectionHeading eyebrow="THE FIRST GATE / LAUNCH ACCESS" title="JOIN THE WAITLIST" text="Be among the first to hear when Life Eternal launches, along with development news and early opportunities to join the world." /><div className="mt-4 grid flex-1 gap-4 lg:grid-cols-[1.1fr_.9fr]"><Panel className="p-5 sm:p-6"><div className="flex items-center justify-between border-b border-[#c49b58]/30 pb-3"><div><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">LIFE ETERNAL / LAUNCH NEWS</div><h3 className="mt-1 text-2xl text-[#ebdfc5]">The first gate opens soon.</h3></div><ScrollText className="text-[#d5a45c]" size={24} /></div><p className="mt-5 max-w-lg text-sm leading-relaxed text-[#c9bea9] sm:text-base">Leave your email to receive launch announcements, development updates, and future playtest news.</p><label className="cinzel mt-5 block text-[10px] tracking-[.18em] text-[#d5a45c]">EMAIL ADDRESS<input value={email} onChange={event => { setEmail(event.target.value); setJoined(false); }} type="email" placeholder="you@example.com" className="mt-2 w-full border border-[#d2ad64]/45 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#e2b967]" /></label><div className="mt-4"><Button variant="red" onClick={() => setJoined(Boolean(email))} icon={<ScrollText size={15} />}>JOIN THE WAITLIST</Button>{joined && <p className="mt-3 text-sm text-[#d9c38b]"><Check size={15} className="mr-2 inline text-[#e1b25b]" />You’re on the list. We’ll be in touch when the gate opens.</p>}</div></Panel><Panel className="relative flex flex-col justify-between overflow-hidden p-5 sm:p-6"><div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_32%,rgba(213,154,69,.25),transparent_24%),linear-gradient(135deg,#172b39,#090f1b)]" /><div className="relative"><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">JOIN THE ETERNAL TEAM</div><h3 className="mt-3 text-3xl text-[#eee0c2]">Help build the next world.</h3><p className="mt-3 max-w-md text-sm leading-relaxed text-[#c9bea9]">Artists, developers, community builders, writers, musicians, and passionate collaborators are welcome. Tell us what you can bring to Life Eternal.</p></div><div className="relative mt-6"><Button variant="gold" onClick={() => { setTeamOpen(true); setTeamSubmitted(false); }} icon={<Users size={15} />}>CONTRIBUTE TO THE GAME</Button></div></Panel></div>{teamOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#03060d]/85 p-4 backdrop-blur-sm"><Panel className="max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-[#0c1728] p-5 sm:p-6"><div className="flex items-start justify-between"><div><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">LIFE ETERNAL / CONTRIBUTOR FORM</div><h3 className="mt-2 text-2xl text-[#eee0c2]">Join the Eternal Team</h3></div><button onClick={() => setTeamOpen(false)} aria-label="Close contributor form" className="text-[#c9a05a] hover:text-white"><X size={20} /></button></div>{teamSubmitted ? <div className="mt-6 border border-[#d2ad64]/35 bg-[#d2ad64]/5 p-5 text-center"><Check size={28} className="mx-auto text-[#e1b25b]" /><h4 className="mt-3 text-xl text-[#eee0c2]">Application prepared</h4><p className="mt-2 text-sm leading-relaxed text-[#c9bea9]">Thank you. Google Sheets delivery will be connected when the integration details are available.</p></div> : <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="cinzel text-[10px] tracking-[.16em] text-[#d5a45c]">EMAIL ADDRESS<input value={teamEmail} onChange={event => setTeamEmail(event.target.value)} type="email" placeholder="you@example.com" className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><label className="cinzel text-[10px] tracking-[.16em] text-[#d5a45c]">GAME EXPERIENCE<input value={gameExperience} onChange={event => setGameExperience(event.target.value)} placeholder="Have you worked on a game before?" className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><label className="cinzel sm:col-span-2 text-[10px] tracking-[.16em] text-[#d5a45c]">SKILLS OR CONTRIBUTIONS<textarea value={skills} onChange={event => setSkills(event.target.value)} placeholder="What skills can you contribute?" className="mt-2 min-h-24 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><label className="cinzel text-[10px] tracking-[.16em] text-[#d5a45c]">PORTFOLIO LINKS<input value={portfolio} onChange={event => setPortfolio(event.target.value)} placeholder="Website, ArtStation, GitHub, etc." className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><label className="cinzel text-[10px] tracking-[.16em] text-[#d5a45c]">SOCIAL MEDIA<input value={socials} onChange={event => setSocials(event.target.value)} placeholder="Discord, X, LinkedIn, etc." className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><div className="sm:col-span-2"><Button variant="gold" onClick={() => setTeamSubmitted(Boolean(teamEmail && skills))} icon={<Check size={15} />}>SEND APPLICATION</Button></div></div>}</Panel></div>}</div>;
+  const submitWaitlist = async () => {
+    const cleanEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setWaitlistError('Enter a valid email address.');
+      setJoined(false);
+      return;
+    }
+    setWaitlistSending(true);
+    setWaitlistError('');
+    setJoined(false);
+    try {
+      await submitWebsiteFormToSheet({ type: 'waitlist', email: cleanEmail, source: 'Homepage waitlist' });
+      setJoined(true);
+    } catch {
+      setWaitlistError('Could not send your signup. Please try again.');
+    } finally {
+      setWaitlistSending(false);
+    }
+  };
+
+  const submitTeamApplication = async () => {
+    const cleanEmail = teamEmail.trim();
+    const cleanSkills = skills.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail) || !cleanSkills) {
+      setTeamError('Enter a valid email and describe the skills you can contribute.');
+      setTeamSubmitted(false);
+      return;
+    }
+    setTeamSending(true);
+    setTeamError('');
+    setTeamSubmitted(false);
+    try {
+      await submitWebsiteFormToSheet({
+        type: 'team', email: cleanEmail, skills: cleanSkills,
+        gameExperience: gameExperience.trim(), portfolio: portfolio.trim(), socials: socials.trim(),
+        source: 'Join the Team form',
+      });
+      setTeamSubmitted(true);
+    } catch {
+      setTeamError('Could not send your application. Please try again.');
+    } finally {
+      setTeamSending(false);
+    }
+  };
+
+  return <div className="flex h-full flex-col"><SectionHeading eyebrow="THE FIRST GATE / LAUNCH ACCESS" title="JOIN THE WAITLIST" text="Be among the first to hear when Life Eternal launches, along with development news and early opportunities to join the world." /><div className="mt-4 grid flex-1 gap-4 lg:grid-cols-[1.1fr_.9fr]"><Panel className="p-5 sm:p-6"><div className="flex items-center justify-between border-b border-[#c49b58]/30 pb-3"><div><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">LIFE ETERNAL / LAUNCH NEWS</div><h3 className="mt-1 text-2xl text-[#ebdfc5]">The first gate opens soon.</h3></div><ScrollText className="text-[#d5a45c]" size={24} /></div><p className="mt-5 max-w-lg text-sm leading-relaxed text-[#c9bea9] sm:text-base">Leave your email to receive launch announcements, development updates, and future playtest news.</p><label className="cinzel mt-5 block text-[10px] tracking-[.18em] text-[#d5a45c]">EMAIL ADDRESS<input value={email} onChange={event => { setEmail(event.target.value); setJoined(false); }} type="email" placeholder="you@example.com" className="mt-2 w-full border border-[#d2ad64]/45 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#e2b967]" /></label><div className="mt-4"><Button variant="red" onClick={() => void submitWaitlist()} icon={<ScrollText size={15} />}>{waitlistSending ? 'SENDING…' : 'JOIN THE WAITLIST'}</Button>{waitlistError && <p className="mt-3 text-sm text-red-300">{waitlistError}</p>}{joined && <p className="mt-3 text-sm text-[#d9c38b]"><Check size={15} className="mr-2 inline text-[#e1b25b]" />You’re on the list. We’ll be in touch when the gate opens.</p>}</div></Panel><Panel className="relative flex flex-col justify-between overflow-hidden p-5 sm:p-6"><div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_32%,rgba(213,154,69,.25),transparent_24%),linear-gradient(135deg,#172b39,#090f1b)]" /><div className="relative"><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">JOIN THE ETERNAL TEAM</div><h3 className="mt-3 text-3xl text-[#eee0c2]">Help build the next world.</h3><p className="mt-3 max-w-md text-sm leading-relaxed text-[#c9bea9]">Artists, developers, community builders, writers, musicians, and passionate collaborators are welcome. Tell us what you can bring to Life Eternal.</p></div><div className="relative mt-6"><Button variant="gold" onClick={() => { setTeamOpen(true); setTeamSubmitted(false); }} icon={<Users size={15} />}>CONTRIBUTE TO THE GAME</Button></div></Panel></div>{teamOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#03060d]/85 p-4 backdrop-blur-sm"><Panel className="max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-[#0c1728] p-5 sm:p-6"><div className="flex items-start justify-between"><div><div className="cinzel text-[10px] tracking-[.25em] text-[#d5a45c]">LIFE ETERNAL / CONTRIBUTOR FORM</div><h3 className="mt-2 text-2xl text-[#eee0c2]">Join the Eternal Team</h3></div><button onClick={() => setTeamOpen(false)} aria-label="Close contributor form" className="text-[#c9a05a] hover:text-white"><X size={20} /></button></div>{teamSubmitted ? <div className="mt-6 border border-[#d2ad64]/35 bg-[#d2ad64]/5 p-5 text-center"><Check size={28} className="mx-auto text-[#e1b25b]" /><h4 className="mt-3 text-xl text-[#eee0c2]">Application prepared</h4><p className="mt-2 text-sm leading-relaxed text-[#c9bea9]">Your application has been sent. Thank you for offering to help build Life Eternal.</p></div> : <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="cinzel text-[10px] tracking-[.16em] text-[#d5a45c]">EMAIL ADDRESS<input value={teamEmail} onChange={event => setTeamEmail(event.target.value)} type="email" placeholder="you@example.com" className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><label className="cinzel text-[10px] tracking-[.16em] text-[#d5a45c]">GAME EXPERIENCE<input value={gameExperience} onChange={event => setGameExperience(event.target.value)} placeholder="Have you worked on a game before?" className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><label className="cinzel sm:col-span-2 text-[10px] tracking-[.16em] text-[#d5a45c]">SKILLS OR CONTRIBUTIONS<textarea value={skills} onChange={event => setSkills(event.target.value)} placeholder="What skills can you contribute?" className="mt-2 min-h-24 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><label className="cinzel text-[10px] tracking-[.16em] text-[#d5a45c]">PORTFOLIO LINKS<input value={portfolio} onChange={event => setPortfolio(event.target.value)} placeholder="Website, ArtStation, GitHub, etc." className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><label className="cinzel text-[10px] tracking-[.16em] text-[#d5a45c]">SOCIAL MEDIA<input value={socials} onChange={event => setSocials(event.target.value)} placeholder="Discord, X, LinkedIn, etc." className="mt-2 w-full border border-white/15 bg-[#08111e] px-3 py-3 font-sans text-sm tracking-normal text-[#f0e5ce] outline-none focus:border-[#d9ac5f]" /></label><div className="sm:col-span-2"><Button variant="gold" onClick={() => void submitTeamApplication()} icon={<Check size={15} />}>{teamSending ? 'SENDING…' : 'SEND APPLICATION'}</Button>{teamError && <p className="mt-3 text-sm text-red-300">{teamError}</p>}</div></div>}</Panel></div>}</div>;
 }
 
 function Story() {
