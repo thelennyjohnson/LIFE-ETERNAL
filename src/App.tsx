@@ -701,9 +701,9 @@ function Requirement({ icon: Component, label, value }: { icon: React.ElementTyp
 
 function SignupSuccessModal({ type, onClose }: { type: 'waitlist' | 'team'; onClose: () => void }) {
   const [linkCopied, setLinkCopied] = useState(false);
-  const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://life-eternal.game';
-  const shareText = 'i just joined the waitlist for Life Eternal Game ⚔️ #lifeeternalgame';
-  const shareMessage = `${shareText} ${shareUrl}`;
+  const shareUrl = 'https://life-eternal.vercel.app';
+  const shareText = 'I just joined the waitlist for Life Eternal Game ⚔️ https://life-eternal.vercel.app #lifeeternalgame';
+  const shareMessage = shareText;
   const heading = type === 'waitlist' ? 'Thanks for joining the waitlist!' : 'Thanks for your interest in joining the team!';
 
   const copyShareLink = async () => {
@@ -730,7 +730,7 @@ function SignupSuccessModal({ type, onClose }: { type: 'waitlist' | 'team'; onCl
       </div>
       <p className="mt-3 text-xs text-[#c9bea9]">Help us share with friends!</p>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" className="cinzel flex items-center justify-center gap-2 border border-white/15 bg-white/5 px-3 py-2.5 text-[9px] tracking-[.12em] text-[#eee0c2] hover:border-[#e2b967]"><XIcon size={13} /> X</a>
+        <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" className="cinzel flex items-center justify-center gap-2 border border-white/15 bg-white/5 px-3 py-2.5 text-[9px] tracking-[.12em] text-[#eee0c2] hover:border-[#e2b967]"><XIcon size={13} /> X</a>
         <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`} target="_blank" rel="noopener noreferrer" className="cinzel flex items-center justify-center gap-2 border border-white/15 bg-white/5 px-3 py-2.5 text-[9px] tracking-[.12em] text-[#eee0c2] hover:border-[#25D366]"><WhatsAppIcon size={14} className="text-[#25D366]" /> WhatsApp</a>
         <button type="button" onClick={() => void openInstagram()} className="cinzel flex items-center justify-center gap-2 border border-white/15 bg-white/5 px-3 py-2.5 text-[9px] tracking-[.12em] text-[#eee0c2] hover:border-[#E1306C]"><InstagramIcon size={14} className="text-[#E1306C]" /> Instagram</button>
         <button type="button" onClick={() => void copyShareLink()} className="cinzel flex items-center justify-center gap-2 border border-white/15 bg-white/5 px-3 py-2.5 text-[9px] tracking-[.12em] text-[#eee0c2] hover:border-[#e2b967]"><Copy size={13} /> {linkCopied ? 'COPIED' : 'COPY SHARE LINK'}</button>
