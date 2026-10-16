@@ -33,6 +33,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid #e7bd70; outline-offs
 }
 
 .game-frame { position: relative; isolation: isolate; height: 100svh; min-height: 100svh; overflow: hidden; }
+.hero-loop { top: 30%; bottom: 40px; width: min(78vw, 1120px); height: calc(70% - 40px); object-position: right bottom; }
+@media (max-width: 768px) { .hero-loop { width: 100%; max-width: none; } }
 @media (max-width: 768px) {
   .game-frame { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: auto; }
   .game-frame::-webkit-scrollbar { width: 6px; }

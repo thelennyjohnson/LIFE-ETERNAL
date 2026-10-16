@@ -57,7 +57,6 @@ function App() {
   const [deathState, setDeathState] = useState<'idle' | 'fallen' | 'victory'>('idle');
   const [sound, setSound] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const navigationLockRef = useRef(false);
   const pageNavigationClickRef = useRef(false);
@@ -142,10 +141,6 @@ function App() {
     window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
   }, [active]);
   useEffect(() => {
-    const onMove = (event: MouseEvent) => setParallax({ x: (event.clientX / window.innerWidth - .5) * 12, y: (event.clientY / window.innerHeight - .5) * 8 });
-    window.addEventListener('mousemove', onMove); return () => window.removeEventListener('mousemove', onMove);
-  }, []);
-  useEffect(() => {
     const menuItems: Section[] = ['home', ...tabs.map(tab => tab.id), 'donate', 'demo'];
     const onWheel = (event: WheelEvent) => {
       if (window.innerWidth <= 768) return;
@@ -185,7 +180,7 @@ function App() {
 
   return <main className="h-screen overflow-hidden bg-[#080d17] text-[#f0e5ce]">
     <div key={active} className="page-flip h-full">
-      {active === 'home' ? <Home onNavigate={goTo} parallax={parallax} sound={sound} setSound={setSound} toggleSound={toggleSound} menuOpen={menuOpen} setMenuOpen={setMenuOpen} /> : <GameSection active={active} onNavigate={goTo} selectedKingdom={selectedKingdom} setSelectedKingdom={setSelectedKingdom} lootItem={lootItem} setLootItem={setLootItem} deathState={deathState} setDeathState={setDeathState} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} />}
+      {active === 'home' ? <Home onNavigate={goTo} sound={sound} toggleSound={toggleSound} menuOpen={menuOpen} setMenuOpen={setMenuOpen} /> : <GameSection active={active} onNavigate={goTo} selectedKingdom={selectedKingdom} setSelectedKingdom={setSelectedKingdom} lootItem={lootItem} setLootItem={setLootItem} deathState={deathState} setDeathState={setDeathState} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} />}
     </div>
     <Footer onNavigate={goTo} />
   </main>;
@@ -306,30 +301,22 @@ function InstagramIcon({ size = 15, className = '' }: { size?: number; className
   );
 }
 
-function Header({ onNavigate, sound, setSound }: { onNavigate: (section: Section) => void; sound: boolean; setSound: (value: boolean) => void }) {
-  return <header className="absolute inset-x-0 top-0 z-40 flex items-start justify-between px-5 py-5 sm:px-10 lg:px-14">
-    <button onClick={() => onNavigate('home')} className="cinzel text-left text-xs tracking-[.3em] text-[#d8b674] transition hover:text-white">LIFE<br /><span className="text-[#f0e8d8]">ETERNAL</span><span className="ml-2 text-[8px] tracking-[.1em] text-[#a48046]">/ 01</span></button>
-    <div className="hidden items-start gap-2 sm:flex">
-      <Button variant="red" onClick={() => onNavigate('demo')} icon={<ScrollText size={13} />}>JOIN THE WAITLIST</Button>
-      <div className="text-center">
-        <Button variant="gold" onClick={() => onNavigate('donate')} icon={<Heart size={13} fill="currentColor" />}>DONATE</Button>
-        <div className="mt-1 text-[10px] tracking-[.08em] text-[#d7b978]">Support us for special in-game loot</div>
-      </div>
-      <button onClick={() => setSound(!sound)} aria-label="Toggle sounds" className="ml-1 mt-2 text-[#d9b66e] hover:text-white">{sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
-    </div>
-  </header>;
-}
 
 function SideNav({ active, onNavigate, menuOpen, setMenuOpen, sound, toggleSound }: { active: Section; onNavigate: (section: Section) => void; menuOpen: boolean; setMenuOpen: (value: boolean) => void; sound: boolean; toggleSound: () => void }) {
   return <><button className="fixed right-5 top-5 z-50 border border-[#d7ad64]/60 bg-[#0a1220]/90 p-3 text-[#e8c980] sm:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu">{menuOpen ? <X size={20} /> : <Menu size={20} />}</button><nav className={`${menuOpen ? 'flex' : 'hidden'} fixed inset-x-5 top-20 z-40 flex-col gap-1 sm:fixed sm:right-8 sm:top-28 sm:flex sm:w-40 sm:inset-x-auto`} aria-label="Game navigation">{tabs.map(tab => <button key={tab.id} aria-current={active === tab.id ? 'page' : undefined} onClick={() => onNavigate(tab.id)} className={`tab cinzel flex h-10 items-center justify-center border border-[#9b7135]/45 bg-[#e5cb99] px-5 text-[10px] font-bold tracking-[.25em] text-[#26170f] shadow-lg ${active === tab.id ? 'border-[#e9ba68]' : ''}`}>{tab.label}</button>)}{active !== 'home' && <><button onClick={() => onNavigate('donate')} className={`tab cinzel flex h-10 items-center justify-center border border-[#b7914f] bg-gradient-to-r from-[#d7ac5b] to-[#926126] px-5 text-[10px] font-bold tracking-[.2em] text-[#20150d] shadow-lg ${active === 'donate' ? 'brightness-125' : ''}`}>DONATE</button><button onClick={() => onNavigate('demo')} className="tab cinzel flex h-10 items-center justify-center border border-[#c99a51] bg-gradient-to-r from-[#8d2025] to-[#3b080d] px-5 text-[9px] font-bold tracking-[.1em] text-[#f4dfb1] shadow-lg">JOIN THE WAITLIST</button></>}{<button onClick={toggleSound} className="mx-auto mt-3 flex items-center gap-2 text-[9px] font-bold tracking-[.18em] text-[#8b6a35]" aria-label="Toggle atmospheric audio">{sound ? <Volume2 size={14} /> : <VolumeX size={14} />} {sound ? 'SOUND ON' : 'SOUND OFF'}</button>}</nav></>;
 }
 
-function Home({ onNavigate, parallax, sound, setSound, toggleSound, menuOpen, setMenuOpen }: { onNavigate: (section: Section) => void; parallax: { x: number; y: number }; sound: boolean; setSound: (value: boolean) => void; toggleSound: () => void; menuOpen: boolean; setMenuOpen: (value: boolean) => void }) {
-  return <section className="game-frame relative overflow-hidden border-b border-[#bb8d4b]/30"><div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_35%,#8d765d_0%,#314654_27%,#111d2d_60%,#080d17_100%)]" /><div className="absolute inset-0 opacity-40" style={{ backgroundImage: `url(${assets.heroBackground})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'grayscale(.35) sepia(.25)' }} /><div className="absolute inset-0 bg-[linear-gradient(90deg,#07101c_4%,transparent_63%),linear-gradient(0deg,#080d17_1%,transparent_42%)]" />
+function Home({ onNavigate, sound, toggleSound, menuOpen, setMenuOpen }: { onNavigate: (section: Section) => void; sound: boolean; toggleSound: () => void; menuOpen: boolean; setMenuOpen: (value: boolean) => void }) {
+  return <section className="game-frame relative overflow-hidden border-b border-[#bb8d4b]/30">
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_35%,#8d765d_0%,#314654_27%,#111d2d_60%,#080d17_100%)]" />
+    <div className="absolute inset-0 opacity-40" style={{ backgroundImage: `url(${assets.heroBackground})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'grayscale(.35) sepia(.25)' }} />
+    <div className="absolute inset-0 bg-[linear-gradient(90deg,#07101c_4%,transparent_63%),linear-gradient(0deg,#080d17_1%,transparent_42%)]" />
+    <img src="/hero-animation.webp" alt="" aria-hidden="true" className="hero-loop pointer-events-none absolute right-0 z-10 select-none object-contain object-right-bottom" />
     {embers.map((ember, index) => <i key={index} className="ember" style={{ left: ember.left, bottom: '-10px', animationDelay: ember.delay, animationDuration: ember.duration, ['--drift' as string]: ember.drift }} />)}
-    <Header onNavigate={onNavigate} sound={sound} setSound={setSound} />
     <SideNav active="home" onNavigate={onNavigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} sound={sound} toggleSound={toggleSound} />
-    <div className="relative z-30 mx-auto flex h-full max-w-[1440px] flex-col justify-center px-7 sm:px-14 lg:px-20"><div className="max-w-xl"><div className="cinzel mb-4 flex items-center gap-3 text-[10px] tracking-[.38em] text-[#cf9c4d]"><span className="h-px w-12 bg-[#cf9c4d]" />A FOREVER-FREE ACTION RPG</div><img src="/life-eternal-logo.png" alt="Life Eternal" className="h-auto w-44 mix-blend-screen drop-shadow-[0_0_18px_rgba(218,160,70,.38)] sm:w-56 lg:w-72" /><div className="mt-6 max-w-md border-l-2 border-[#a67b40] pl-5"><h2 className="cinzel text-lg leading-snug tracking-[.18em] text-[#e0b86e] sm:text-xl">THE LAST KNIGHT.<br />AN ENDLESS WAR.</h2><p className="mt-3 text-base leading-relaxed text-[#dfd3ba]">The Demon King Malakar is building a gateway to conquer the multiverse. You are C'eleste, the last surviving knight of an ancient order. Die, grow stronger, and try again.</p></div><div className="mt-6 flex flex-wrap gap-3"><Button onClick={() => onNavigate('demo')} variant="red" icon={<ScrollText size={14} />}>JOIN THE WAITLIST</Button><Button onClick={() => onNavigate('donate')} variant="gold" icon={<Heart size={14} />}>DONATE</Button></div><div className="cinzel mt-4 flex items-center gap-4 text-[9px] tracking-[.2em] text-[#a99d87]"><span className="flex items-center gap-2"><Gamepad2 size={14} /> PC</span><span className="h-3 w-px bg-[#806844]" /><span>ANDROID</span><span className="h-3 w-px bg-[#806844]" /><span>iOS</span></div></div></div><div className="scroll-hint absolute bottom-20 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 text-[10px] tracking-[.18em] text-[#9f967f] lg:flex"><ChevronDown size={14} /> SCROLL TO EXPLORE</div></section>;
+    <div className="relative z-30 mx-auto flex h-full max-w-[1440px] flex-col justify-center px-7 sm:px-14 lg:px-20"><div className="max-w-xl"><div className="cinzel mb-4 flex items-center gap-3 text-[10px] tracking-[.38em] text-[#cf9c4d]"><span className="h-px w-12 bg-[#cf9c4d]" />A FOREVER-FREE ACTION RPG</div><img src="/life-eternal-logo.png" alt="Life Eternal" className="h-auto w-44 mix-blend-screen drop-shadow-[0_0_18px_rgba(218,160,70,.38)] sm:w-56 lg:w-72" /><div className="mt-6 max-w-md border-l-2 border-[#a67b40] pl-5"><h2 className="cinzel text-lg leading-snug tracking-[.18em] text-[#e0b86e] sm:text-xl">THE LAST KNIGHT.<br />AN ENDLESS WAR.</h2><p className="mt-3 text-base leading-relaxed text-[#dfd3ba]">The Demon King Malakar is building a gateway to conquer the multiverse. You are C'eleste, the last surviving knight of an ancient order. Die, grow stronger, and try again.</p></div><div className="mt-6 flex flex-wrap gap-3"><Button onClick={() => onNavigate('demo')} variant="red" icon={<ScrollText size={14} />}>JOIN THE WAITLIST</Button><Button onClick={() => onNavigate('donate')} variant="gold" icon={<Heart size={14} />}>DONATE</Button></div><div className="cinzel mt-4 flex items-center gap-4 text-[9px] tracking-[.2em] text-[#a99d87]"><span className="flex items-center gap-2"><Gamepad2 size={14} /> PC</span><span className="h-3 w-px bg-[#806844]" /><span>ANDROID</span><span className="h-3 w-px bg-[#806844]" /><span>iOS</span></div></div></div>
+    <div className="scroll-hint absolute bottom-20 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 text-[10px] tracking-[.18em] text-[#9f967f] lg:flex"><ChevronDown size={14} /> SCROLL TO EXPLORE</div>
+  </section>;
 }
 
 function HeroPanel() { return <Panel className="absolute bottom-10 right-8 z-30 hidden w-72 p-6 lg:block"><div className="cinzel mb-4 text-[10px] tracking-[.25em] text-[#d1a85e]">THE ETERNAL OATH</div>{[['Infinite Campaign', Globe2], ['Death Isn’t The End', RotateCcw], ['No Pay-to-Win', Shield]].map(([label, icon]) => <div key={label as string} className="flex items-center gap-4 border-t border-white/10 py-3 text-[#d2c8b4]"><Icon icon={icon as React.ElementType} size={20} /><span className="text-lg">{label as string}</span></div>)}</Panel>; }
@@ -732,6 +719,7 @@ function Waitlist() {
       setJoined(false);
       return;
     }
+
     setWaitlistSending(true);
     setWaitlistError('');
     setJoined(false);
@@ -753,6 +741,7 @@ function Waitlist() {
       setTeamSubmitted(false);
       return;
     }
+
     setTeamSending(true);
     setTeamError('');
     setTeamSubmitted(false);
@@ -795,7 +784,5 @@ function PageDots({ active, onNavigate }: { active: Section; onNavigate: (sectio
 function Footer({ onNavigate }: { onNavigate: (section: Section) => void }) { return <footer className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-center border-t border-[#b78a4a]/25 bg-[#080d17]/75 px-6 py-3 text-center text-[#8f897d] backdrop-blur-sm"><div className="flex items-center gap-6"><button onClick={() => onNavigate('home')} className="cinzel text-xs tracking-[.25em] text-[#d6b16b]">LIFE ETERNAL</button><div className="hidden text-xs text-[#898273] sm:block">Forever-free single-player & co-op action RPG.</div><div className="flex gap-4"><a href="https://twitter.com/intent/tweet?text=Check%20out%20Life%20Eternal%20video%20game.%20%23lifeeternalgame" target="_blank" rel="noopener noreferrer" aria-label="X" className="transition hover:text-[#d6b16b]"><XIcon size={16} /></a><a href="https://discord.gg/s4hfgz2yy8" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="transition hover:text-[#d6b16b]"><DiscordIcon size={17} /></a><a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="transition hover:text-[#d6b16b]"><Youtube size={17} /></a></div></div></footer>; }
 
 export default App;
-
-
 
 
