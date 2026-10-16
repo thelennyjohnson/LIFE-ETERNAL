@@ -7,6 +7,15 @@ import {
 } from 'lucide-react';
 import { assets } from './assets';
 
+declare global {
+  interface Window {
+    Ally?: {
+      identify: (profile: { id: string; email?: string }) => void;
+      track: (event: string, properties?: { form: string }) => void;
+    };
+  }
+}
+
 type Section = 'home' | 'story' | 'world' | 'loot' | 'eternal' | 'compete' | 'donate' | 'demo';
 
 const tabs: { id: Exclude<Section, 'home' | 'donate'>; label: string }[] = [
@@ -769,6 +778,12 @@ function Waitlist() {
     setJoined(false);
     try {
       await submitWebsiteFormToSheet({ type: 'waitlist', email: cleanEmail, source: 'Homepage waitlist' });
+      try {
+        window.Ally?.identify({ id: cleanEmail, email: cleanEmail });
+        window.Ally?.track('signup', { form: 'waitlist' });
+      } catch (error) {
+        console.warn('[Ally] Could not record the successful waitlist signup:', error);
+      }
       setJoined(true);
       setSuccessType('waitlist');
     } catch {
